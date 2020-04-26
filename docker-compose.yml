@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+  rabbitmq:
+    image: 'rabbitmq:alpine'
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
+      interval: 5s
+      timeout: 15s
+      retries: 1
+    env_file: rabbitmq.env
+
+    # Открываем порты.
+    # Единственными методами безопасности остаются: файрволл хост машины и логин с паролем rabbitmq.
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  server:
+    tty: true
+    build: server
+    command: python server.py
+    # restart: always
+    env_file:
+      - server/.env
+    volumes:
+      - "$WATCH_PATH:/watchpath" # Прокидываем директорию в контейнер
+
+    depends_on:
+      - rabbitmq
+
+
+
+# В случае, если клиент должен быть на другой машине, запуск с одного docker-compose нам не подойдет.
+#  client:
+#    tty: true
+#    build: client
+#    command: python client.py
+#    env_file:
+#      - client/.env
+#
+#    depends_on:
+#      - server
+
